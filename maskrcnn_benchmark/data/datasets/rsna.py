@@ -14,8 +14,11 @@ from maskrcnn_benchmark.structures.segmentation_mask import SegmentationMask
 class RSNADataset(torch.utils.data.Dataset):
     CLASSES = (
         "__background__ ",
-        "pneumonia"
+        "Type_1",
+        "Type_2",
+        "Type_3"
     )
+    #should change anotaion -> mask
 
     def __init__(self, ann_file, root, remove_images_without_annotations, mask_type='polygon', transforms=None):
         # "mask_type" = "polygon" or "image"
@@ -23,71 +26,66 @@ class RSNADataset(torch.utils.data.Dataset):
         self.mask_type = mask_type
         self.img_key_list = list()
         self.img_dict = dict()
-        self.ann_info = dict()
+        self.ann_info = list()
 
         cls = RSNADataset.CLASSES
         self.class_to_ind = dict(zip(cls, range(len(cls))))
 
+        img_dict = dict()
         for dirName, subdirList, fileList in os.walk(root):
             for filename in fileList:
                 filename, ext = os.path.splitext(filename)
                 if ext.lower() in [".png", ".jpg", ".jpeg"]:
-                    self.img_dict[filename] = os.path.join(dirName, filename + ext)
-                    self.ann_info[filename] = list()
+                    img_dict[filename] = os.path.join(root, dirName, filename + ext)
 
-        # csv 용도 이며, mask 이미지인 경우 다르게 작업
         with open(ann_file, 'r') as ann_f:
             ann_cvf = csv.reader(ann_f)
 
-            # patientId,x,y,width,height,Target
             for i, line in enumerate(ann_cvf):
                 if i == 0:
                     continue
 
-                filename, x, y, w, h, target = line
-                target = int(target)
+                filename, x, y, w, h, cls = line
 
                 if remove_images_without_annotations:
-                    if target == 0:
+                    if cls == 0:
                         continue
 
                     x1 = int(x)
                     y1 = int(y)
-                    w = int(w)
-                    h = int(h)
+                    x2 = int(w) + x1
+                    y2 = int(h) + y1
 
-                    x2 = x1 + w
-                    y2 = y1 + h
-
-                    self.img_key_list.append(filename)
                 else:
-                    self.img_key_list.append(filename)
                     x1 = 0
                     y1 = 0
                     x2 = 0
                     y2 = 0
 
                 try:
-                    self.ann_info[filename].append([x1,y1,x2,y2,target])
+                    self.ann_info.append(([x1, y1, x2, y2, cls], img_dict[filename]))
+
                 except KeyError:
                     continue
 
         # 중복 방지 RSNA csv 파일 참조
-        self.img_key_list = list(set(self.img_key_list))
+        # self.img_key_list = list(set(self.img_key_list))
         self.transforms = transforms
 
     def __getitem__(self, idx):
-        filename = self.img_key_list[idx]
+        ann_info, img = self.ann_info[idx]
 
-        img = cv2.imread(self.img_dict[filename], cv2.IMREAD_COLOR)
+        img = cv2.imread(img, cv2.IMREAD_COLOR)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(img, mode="RGB")
 
         # img = Image.open(self.img_dict[filename]).convert("RGB")
         width, height = img.size
 
-        target = self.get_groundtruth(filename, width, height)
+        target = self.get_groundtruth(ann_info, width, height)
+
         target = target.clip_to_image(remove_empty=True)
+
 
         if self.transforms is not None:
             img, target = self.transforms(img, target)
@@ -95,17 +93,28 @@ class RSNADataset(torch.utils.data.Dataset):
         return img, target, idx
 
     def __len__(self):
-        return len(self.img_key_list)
+        return len(self.ann_info)
 
-    def get_groundtruth(self, filename, width, height):
-        anno = self._preprocess_annotation(self.ann_info[filename], width, height)
+    def get_groundtruth(self, ann_info, width, height):
+        # anno = self._preprocess_annotation(self.ann_info[filename], width, height)
 
-        target = BoxList(anno["boxes"], (width, height), mode="xyxy")
-        target.add_field("labels", anno["labels"])
+        x1, y1, x2, y2, cls = ann_info
+
+        x1 = int(x1)
+        y1 = int(y1)
+        x2 = int(x2)
+        y2 = int(y2)
+
+        cls = int(cls)
+
+        box = [x1, y1, x2, y2]
+        target = BoxList(torch.tensor([box]), (width, height), mode="xyxy")
+        target.add_field("labels", torch.tensor([cls]))
 
         # masks = SegmentationMask(anno["masks"], (width, height))
-        masks = SegmentationMask(anno["masks"], (width, height), type=self.mask_type)
-        target.add_field("masks", masks)
+        # masks = SegmentationMask(anno["masks"], (width, height), type=self.mask_type)
+        # target.add_field("masks", masks)
+
         return target
 
     def _preprocess_annotation(self, target, width, height):
@@ -115,6 +124,8 @@ class RSNADataset(torch.utils.data.Dataset):
         gt_classes = []
 
         for ann_info in target:
+            if ann_info == None:
+               continue
             mask = np.zeros((height, width))
 
             bndbox = ann_info[:4]

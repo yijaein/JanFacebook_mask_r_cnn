@@ -14,7 +14,9 @@ class RSNADemo(object):
     # COCO categories for pretty print
     CATEGORIES = [
         "__background",
-        "pneumonia",
+        "Type_1",
+        "Type_2",
+        "Type_3"
     ]
 
     def __init__(
@@ -116,6 +118,8 @@ class RSNADemo(object):
         image = self.transforms(original_image)
         # convert to an ImageList, padded so that it is divisible by
         # cfg.DATALOADER.SIZE_DIVISIBILITY
+        # print(self.cfg.DATALOADER.SIZE_DIVISIBILITY)
+
         image_list = to_image_list(image, self.cfg.DATALOADER.SIZE_DIVISIBILITY)
         image_list = image_list.to(self.device)
         # compute predictions

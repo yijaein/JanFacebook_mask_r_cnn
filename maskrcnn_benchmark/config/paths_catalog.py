@@ -5,7 +5,7 @@ import os
 
 
 class DatasetCatalog(object):
-    DATA_DIR = "/home/bong9/data"
+    DATA_DIR = "/home/bong6/data/mrcnn_cer"
     DATASETS = {
         "coco_2014_train": {
             "img_dir": "coco/train2014",
@@ -24,12 +24,12 @@ class DatasetCatalog(object):
             "ann_file": "coco/annotations/instances_valminusminival2014.json"
         },
         "rsna_512_train": {
-            "img_dir": "rsna/rsna512/train",
-            "ann_file": "rsna/rsna512/train_labels_512.csv"
+            "img_dir": "/home/bong6/data/mrcnn_cer/stage1_train1/images",
+            "ann_file": "/home/bong6/data/csv/output.csv"
         },
         "rsna_512_test": {
-            "img_dir": "rsna/rsna512/test",
-            "ann_file": "rsna/rsna512/test_labels_512.csv"
+            "img_dir": "/home/bong6/data/mrcnn_cer/stage1_train1/val2/images",
+            "ann_file": "/home/bong6/data/csv/output.csv"
         },
         "voc_2007_train": {
             "data_dir": "voc/VOC2007",
@@ -87,6 +87,11 @@ class DatasetCatalog(object):
         "cityscapes_fine_instanceonly_seg_test_cocostyle": {
             "img_dir": "cityscapes/images",
             "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_test.json"
+        },
+        # own dataset 이미지와 마스크를 불러온다.
+        'jan_dataset': {
+            "img_dir": "/images",
+            "ann_file": "/home/bong6/lib/JanFacebook_mask_r_cnn/JanTool/output.csv"
         }
     }
 

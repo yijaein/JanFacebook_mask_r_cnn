@@ -218,7 +218,7 @@ _C.MODEL.RESNETS.WIDTH_PER_GROUP = 64
 
 # Place the stride 2 conv on the 1x1 filter
 # Use True only for the original MSRA ResNet; use False for C2 and Torch models
-_C.MODEL.RESNETS.STRIDE_IN_1X1 = True
+_C.MODEL.RESNETS.STRIDE_IN_1X1 = False
 
 # Residual transformation function
 _C.MODEL.RESNETS.TRANS_FUNC = "BottleneckWithFixedBatchNorm"

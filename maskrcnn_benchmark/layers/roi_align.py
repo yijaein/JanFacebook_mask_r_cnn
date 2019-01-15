@@ -47,6 +47,7 @@ class _ROIAlign(Function):
 
 roi_align = _ROIAlign.apply
 
+# roipooling 의 misalign 문제를 해결하기 위해 나온 roipooling
 
 class ROIAlign(nn.Module):
     def __init__(self, output_size, spatial_scale, sampling_ratio):

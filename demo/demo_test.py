@@ -14,7 +14,7 @@ pylab.rcParams['figure.figsize'] = 20, 12
 from maskrcnn_benchmark.config import cfg
 from demo.predictor_rsna import RSNADemo
 
-config_file = "../configs/e2e_mask_rcnn_R_50_FPN_1x_rsna_mask_test.yaml"
+config_file = "/home/bong6/lib/robin_cer/configs/e2e_mask_rcnn_R_50_FPN_1x_rsna.yaml"
 
 # update the config options with the config file
 cfg.merge_from_file(config_file)
@@ -42,8 +42,9 @@ def imshow(img):
     plt.axis("off")
     plt.waitforbuttonpress()
 
-dir_path = "/home/bong9/data/rsna/rsna512/test"
-anno_file = "/home/bong9/data/rsna/rsna512/test_labels_512.csv"
+dir_path = "/home/bong6/data/mrcnn_cer/stage1_train1/images"
+anno_file = "/home/bong6/data/csv/output.csv"
+result_path = '/home/bong6/data/mrcnn_cer/result_rec'
 
 img_list = os.listdir(dir_path)
 
@@ -51,6 +52,12 @@ anno_dict = dict()
 for filename in img_list:
     filename = os.path.splitext(filename)[0]
     anno_dict[filename] = list()
+
+# for dirName, subdirList, fileList in os.walk(dir_path):
+#     for filename in fileList:
+#         filename, ext = os.path.splitext(filename)
+#         if ext.lower() in [".png", ".jpg", ".jpeg"]:
+#
 
 with open(anno_file, 'r') as ann_f:
     ann_cvf = csv.reader(ann_f)
@@ -65,6 +72,7 @@ with open(anno_file, 'r') as ann_f:
 
         if target == 0:
             continue
+        #print(filename, x, y, w, h, target)
 
         x1 = int(x)
         y1 = int(y)
@@ -74,22 +82,64 @@ with open(anno_file, 'r') as ann_f:
         x2 = x1 + w
         y2 = y1 + h
 
-        anno_dict[filename].append((x1, y1, x2, y2))
+        anno_dict[filename] = (x1, y1, x2, y2, target)
+        #print(anno_dict[filename])
 
 
-for filename in img_list:
-    file_path = os.path.join(dir_path, filename)
+for dirName, subdirList, fileList in os.walk(dir_path):
+     for filename in fileList:
 
-    img = cv2.imread(file_path, cv2.IMREAD_COLOR)
+            file_path = os.path.join(dirName,filename)
 
-    predictions = coco_demo.run_on_opencv_image(img)
+            img = cv2.imread(file_path, cv2.IMREAD_COLOR)
 
-    filename = os.path.splitext(filename)[0]
-    anno_info_list = anno_dict[filename]
+            predictions = coco_demo.run_on_opencv_image(img)
 
-    for anno_info in anno_info_list:
-        cv2.rectangle(predictions, anno_info[:2], anno_info[2:4], (255,0,0), 2)
+            filename = os.path.splitext(filename)[0]
+            #print('filename',filename)
+            if filename not in anno_dict:
+                #print('pass, doesnt have anno info', filename)
+                continue
+            anno_info_list = anno_dict[filename]
+            #print(type(anno_info_list))
+            x1,y1,x2,y2, cls = anno_info_list
 
-    imshow(predictions)
+            for anno_info in anno_info_list:
+                cv2.rectangle(predictions, (x1,y1), (x2,y2), color=(255,0,0))
+
+            if not os.path.isdir(result_path):
+                os.makedirs(result_path)
+
+            result_dir = os.path.join(result_path)
+
+            if 'Type_1' in file_path:
+
+                result_1 = os.path.join(result_dir, "Type_1")
+                if not os.path.isdir(result_1):
+                    os.makedirs(result_1)
+                result_1 = os.path.join(result_1, filename + '.png')
+
+                cv2.imwrite(result_1, predictions)
+
+            if 'Type_2' in file_path:
+
+                result_2 = os.path.join(result_dir, "Type_2")
+                if not os.path.isdir(result_2):
+                    os.makedirs(result_2)
+                result_2 = os.path.join(result_2, filename + '.png')
+                cv2.imwrite(result_2, predictions)
+
+            if 'Type_3' in file_path:
+
+                result_3 = os.path.join(result_dir, "Type_3")
+                if not os.path.isdir(result_3):
+                    os.makedirs(result_3)
+                result_3 = os.path.join(result_3, filename+'.png')
+                cv2.imwrite(result_3, predictions)
+
+
+
+            #cv2.imwrite(result_dir, predictions)
+            #imshow(predictions)
 
 
