@@ -1,11 +1,23 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import random
-
+import math
 import torch
 import torchvision
 from torchvision.transforms import functional as F
+import numpy as np
+import numbers
+import types
+import collections
+import warnings
+from PIL import Image, ImageOps, ImageEnhance
 
 
+_pil_interpolation_to_str = {
+    Image.NEAREST: 'PIL.Image.NEAREST',
+    Image.BILINEAR: 'PIL.Image.BILINEAR',
+    Image.BICUBIC: 'PIL.Image.BICUBIC',
+    Image.LANCZOS: 'PIL.Image.LANCZOS',
+}
 class Compose(object):
     def __init__(self, transforms):
         self.transforms = transforms

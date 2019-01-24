@@ -5,7 +5,7 @@ import cv2
 from tools.img_utils import norm_path, split_path, image_list
 import shutil
 import numpy as np
-IMAGE_SIZE = 512
+IMAGE_SIZE = 256
 
 
 def resize_image(im, height=IMAGE_SIZE, width=IMAGE_SIZE):
@@ -86,7 +86,7 @@ def main(src_path, dst_path, image_size):
 
 
 if __name__ == '__main__':
-    src_path = '/home/bong6/data/mrcnn_cer/mask/Type_3'
-    dst_path = '/home/bong6/data/mrcnn_cer/mask/Type_3_re'
+    src_path = '/home/bong6/data/mrcnn_cer/machine_crop/images/Type_3'
+    dst_path = '/home/bong6/data/mrcnn_cer/machine_crop/images/Type_3_re'
 
     main(src_path, dst_path, IMAGE_SIZE)

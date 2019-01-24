@@ -40,19 +40,36 @@ def bb_intersection_over_union(boxA, boxB):
     return iou
 
 
+def classify_labels(top_prediction_label, cls, correct_label, wrong_label):
 
-config_file = "/home/bong6/lib/robin_cer/configs/e2e_mask_rcnn_R_50_FPN_1x_rsna.yaml"
+    if top_prediction_label == cls:
+        correct_label +=1
+    else:
+        wrong_label +=1
 
-# update the config options with the config file
-cfg.merge_from_file(config_file)
-# manual override some options
-cfg.merge_from_list(["MODEL.DEVICE", "cuda"])
+    return correct_label,wrong_label
 
-coco_demo = RSNADemo(
-    cfg,
-    min_image_size=512,
-    confidence_threshold=0.7,
-)
+
+def extract_top_prediction(xyxy):
+    asdfasd = xyxy.numpy()
+    xyxyresult = []
+    for item in asdfasd:
+        xyxyresult.extend(item)
+    # print('asfd', xyxyresult)
+
+
+    if len(xyxyresult) > 4:
+        xyxyresult = xyxyresult[:4]
+        # print(xyxyresult)
+
+    return xyxyresult
+
+
+def crop_and_save_img(xyxy):
+    x, y, w, h = xyxyresult
+
+    result_image = img[int(y):int(y + h), int(x):int(x + w)]
+    cv2.imwrite(crop_path, result_image)
 
 def load(path):
     """
@@ -68,6 +85,20 @@ def imshow(img):
     plt.imshow(img[:, :, [2, 1, 0]])
     plt.axis("off")
     plt.waitforbuttonpress()
+
+config_file = "/home/bong6/lib/robin_cer/configs/e2e_mask_rcnn_R_50_FPN_1x_rsna.yaml"
+
+# update the config options with the config file
+cfg.merge_from_file(config_file)
+# manual override some options
+cfg.merge_from_list(["MODEL.DEVICE", "cuda"])
+
+coco_demo = RSNADemo(
+    cfg,
+    min_image_size=512,
+    confidence_threshold=0.7,
+)
+
 
 dir_path = "/home/bong6/data/mrcnn_cer/stage1_train1/val2/images"
 anno_file = "/home/bong6/data/csv/output.csv"
@@ -103,11 +134,15 @@ with open(anno_file, 'r') as ann_f:
 
         anno_dict[filename] = (x1, y1, x2, y2, target)
         # print(anno_dict[filename])
+
+
+
 count = 0
 iou_sum = 0
 iou_average =0
 correct_label = 0
 wrong_label = 0
+wholedataset = 300
 
 for dirName, subdirList, fileList in os.walk(dir_path):
      for filename in fileList:
@@ -127,74 +162,46 @@ for dirName, subdirList, fileList in os.walk(dir_path):
             top_prediction_label = top_prediction_label.numpy()
 
             if top_prediction_label.size == 0:
-                count += 1
-                # print('count',count)
+                count = count+1
+                print('count',count)
                 continue
 
-            top_prediction_label = top_prediction_label[0]
 
-            #top bbox
-            xyxy = top_prediction.convert('xyxy').bbox
+            top_prediction_label = top_prediction_label[0]
             label = label.numpy()
 
             #ex)155c no ext
             filename = os.path.splitext(filename)[0]
 
 
-
             if filename not in anno_dict:
                 print('pass, doesnt have anno info', filename)
-                # count = count+1
+                count += 1
                 continue
 
             anno_info_list = anno_dict[filename]
             # definition annotation x1,y1,x2,y2 cls
             x1, y1, x2, y2, cls = anno_info_list
 
-
-            if int(top_prediction_label) == cls:
-                correct_label += 1
-                print('correct')
-            else:
-                wrong_label += 1
-                print('wrong')
-
-            print('filename', filename)
-            print('top_prediction_label', top_prediction_label,'\n')
-            #extract list
-            narr = bbox.numpy()
-            bboxresult = []
-
-            for item in narr:
-                bboxresult.extend(item)
-            # print('bboxresult', bboxresult)
+            #check labels(top_prediction) correct or wrong
+            correct_label,wrong_label = classify_labels(top_prediction_label,cls,correct_label,wrong_label)
+            print('correct_label',correct_label)
+            print('wrong_label',wrong_label,)
 
             #extract top_prediction xyxy
-            asdfasd=xyxy.numpy()
-            xyxyresult = []
-            for item in asdfasd:
-                xyxyresult.extend(item)
-            # print('asfd', xyxyresult)
-
-
-            if len(xyxyresult) > 4:
-                xyxyresult = xyxyresult[:4]
-                # print(xyxyresult)
-
+            xyxy = top_prediction.convert('xyxy').bbox
+            xyxyresult = extract_top_prediction(xyxy)
 
             #compute iou
             iou_result = bb_intersection_over_union(anno_dict[filename], xyxyresult)
 
 
             #save crop Image into crop_iamge as crop_img(folder)
-            x, y, w, h = xyxyresult
-
-            result_image = img[int(y):int(y + h), int(x):int(x + w)]
-            # cv2.imwrite(crop_path, result_image)
+            # crop_and_save_img(xyxyresult)
 
             #compute iousum
             iou_sum = iou_sum + iou_result
-            iou_average = iou_sum / (300 - count)
+            iou_average = iou_sum / (wholedataset - count)
             #draw rectangle with prediction and anno rectagle
             for anno_info in anno_info_list:
                 cv2.rectangle(predictions, (x1,y1), (x2,y2), color=(255,0,0))
@@ -206,7 +213,6 @@ for dirName, subdirList, fileList in os.walk(dir_path):
 
             #divide file by file_path like Type
             if 'Type_1' in file_path:
-
                 result_1 = os.path.join(result_dir, "Type_1")
                 if not os.path.isdir(result_1):
                     os.makedirs(result_1)
@@ -228,6 +234,6 @@ for dirName, subdirList, fileList in os.walk(dir_path):
                     os.makedirs(result_3)
                 result_3 = os.path.join(result_3, filename+'.png')
                 cv2.imwrite(result_3, predictions)
-            print(iou_sum)
+            print('iou_sum:', iou_sum,'\n')
 print('정답률:', correct_label/(correct_label + wrong_label))
 print('iou_average:', iou_average)

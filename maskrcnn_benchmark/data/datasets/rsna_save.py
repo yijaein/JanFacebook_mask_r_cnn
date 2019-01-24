@@ -10,10 +10,6 @@ from PIL import Image
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.segmentation_mask import SegmentationMask
 from imgaug import augmenters as iaa
-import imgaug as ia
-import matplotlib.pyplot as plt
-from imgaug import parameters as iap
-import random
 
 class RSNADataset(torch.utils.data.Dataset):
     CLASSES = (
@@ -76,87 +72,28 @@ class RSNADataset(torch.utils.data.Dataset):
         self.transforms = transforms
 
     def __getitem__(self, idx):
-        ann_info, image_path = self.ann_info[idx]
-        # read image
-        img = cv2.imread(image_path, cv2.IMREAD_COLOR)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        ann_info, img = self.ann_info[idx]
 
-        # gen target
-        height, width = img.shape[:2]
+        img = cv2.imread(img, cv2.IMREAD_COLOR)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(img, mode="RGB")
+
+        # img = Image.open(self.img_dict[filename]).convert("RGB")
+        width, height = img.size
+
         target = self.get_groundtruth(ann_info, width, height)
+
         target = target.clip_to_image(remove_empty=True)
 
-        # augment image and target
-        img, target = self.apply_iaa(img, target)
 
 
-        img = Image.fromarray(img, mode="RGB")
-        # plt.imshow(img)
-        # plt.show()
         if self.transforms is not None:
             img, target = self.transforms(img, target)
 
         return img, target, idx
 
-
     def __len__(self):
         return len(self.ann_info)
-
-
-    def apply_iaa(self, image, target):
-
-        numbbox = target.bbox.numpy()
-        bboxresult = []
-
-        for item in numbbox:
-            bboxresult.extend(item)
-
-        a, b, c, d = bboxresult
-        # =================check bounding box======================================================
-
-        # image_debug = image.copy()
-        # image_debug = cv2.rectangle(image_debug, (int(a), int(b)), (int(c), int(d)), color=(255, 0, 0))
-        # plt.imshow(image_debug)
-        # plt.show()
-
-
-        bbs = ia.BoundingBoxesOnImage([
-            ia.BoundingBox(x1=a, y1=b, x2=c, y2=d)
-        ], shape=image.shape[:2])
-
-        seq = iaa.Sequential([
-            iaa.Sometimes(0.5,
-                          iaa.Fliplr(0.5),
-                          iaa.GaussianBlur(sigma=1.5)
-                          ),
-
-            # iaa.Multiply((1.2, 1.5)),  # change brightness, doesn't affect BBs
-            iaa.Affine(
-                # translate_px={"x": 40, "y": 60},
-                # rotate=(-40, 40),
-                scale=(0.8, 1.3)
-            ),  # translate by 40/60px on x/y axis, and scale to 50-70%, affects BBs
-
-            iaa.SomeOf(1,[
-                           iaa.Crop(px=(0, 50), random_state=True),
-                           # CenterCrop(450+random.randrange(0,20), 450+random.randrange(0,20))
-                       ])
-
-
-        ],random_order=True)
-
-
-
-
-        seq_det = seq.to_deterministic()
-
-        image_aug = seq_det.augment_image(image)
-        bbs_aug = seq_det.augment_bounding_boxes([bbs])[0]
-
-        x1, y1, x2, y2 = bbs_aug.bounding_boxes[0].x1, bbs_aug.bounding_boxes[0].y1, bbs_aug.bounding_boxes[0].x2, bbs_aug.bounding_boxes[0].y2
-        target.bbox = torch.as_tensor([[x1, y1, x2, y2]], dtype=torch.float32, device=target.bbox.device)
-        return image_aug, target
-
 
     def get_groundtruth(self, ann_info, width, height):
         # anno = self._preprocess_annotation(self.ann_info[filename], width, height)
@@ -224,10 +161,3 @@ class RSNADataset(torch.utils.data.Dataset):
 
     def map_class_id_to_class_name(self, class_id):
         return RSNADataset.CLASSES[class_id]
-
-def CenterCrop(height, width):
-    crop = iaa.CropToFixedSize(height=height, width=width)
-    crop.position = (iap.Deterministic(0.5), iap.Deterministic(0.5))
-    pad = iaa.PadToFixedSize(height=height, width=width, pad_mode=ia.ALL, pad_cval=(0, 255))
-    pad.position = (iap.Deterministic(0.5), iap.Deterministic(0.5))
-    return iaa.Sequential([crop, pad])

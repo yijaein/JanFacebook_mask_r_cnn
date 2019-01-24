@@ -74,6 +74,7 @@ def inference(
     logger.info("Start evaluation on {} dataset({} images).".format(dataset_name, len(dataset)))
     start_time = time.time()
     predictions = compute_on_dataset(model, data_loader, device)
+    print(predictions)
     # wait for all processes to complete before measuring the time
     synchronize()
     total_time = time.time() - start_time

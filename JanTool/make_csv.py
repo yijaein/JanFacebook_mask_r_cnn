@@ -73,7 +73,7 @@ for (path, dir, files) in os.walk(mask_data_dir):
 
 
 
-
+#open csv file
 with open('output.csv', 'w', encoding='utf-8', newline='') as f:
     fildnames = ['filename', 'x', 'y', 'w', 'h', 'Type']
     wr = csv.writer(f)

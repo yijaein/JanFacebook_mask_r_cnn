@@ -8,7 +8,7 @@ from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.structures.image_list import to_image_list
 from maskrcnn_benchmark.modeling.roi_heads.mask_head.inference import Masker
 from maskrcnn_benchmark import layers as L
-
+from imgaug import augmenters as iaa
 
 class RSNADemo(object):
     # COCO categories for pretty print
@@ -61,6 +61,7 @@ class RSNADemo(object):
         # to BGR, they are already! So all we need to do is to normalize
         # by 255 if we want to convert to BGR255 format, or flip the channels
         # if we want it to be in RGB in [0-1] range.
+
         if cfg.INPUT.TO_BGR255:
             to_bgr_transform = T.Lambda(lambda x: x * 255)
         else:
@@ -101,8 +102,10 @@ class RSNADemo(object):
         if self.cfg.MODEL.MASK_ON:
             result = self.overlay_mask(result, top_predictions)
         result = self.overlay_class_names(result, top_predictions)
+        x = {'pred': predictions, 'bbox': predictions.bbox, 'labels': predictions.get_field('labels'),
+             'top_pred': top_predictions, 'top_label': top_predictions.get_field('labels')}
 
-        return result
+        return result,x
 
     def compute_prediction(self, original_image):
         """
@@ -129,6 +132,7 @@ class RSNADemo(object):
 
         # always single image is passed at a time
         prediction = predictions[0]
+
 
         # reshape prediction (a BoxList) into the original image size
         height, width = original_image.shape[:-1]
@@ -162,6 +166,7 @@ class RSNADemo(object):
         predictions = predictions[keep]
         scores = predictions.get_field("scores")
         _, idx = scores.sort(0, descending=True)
+
         return predictions[idx]
 
     def compute_colors_for_labels(self, labels):
@@ -281,3 +286,4 @@ class RSNADemo(object):
             )
 
         return image
+

@@ -13,6 +13,8 @@ import sys
 import time
 
 import torch
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 sys.path.insert(0,'../')
 from maskrcnn_benchmark.config import cfg
@@ -121,8 +123,8 @@ def main():
     )
     parser.add_argument("--local_rank", type=int, default=0)
     parser.add_argument(
-        "--skip-test",
-        dest="skip_test",
+        '--test',
+        dest="test",
         help="Do not test the final model",
         action="store_true",
     )
@@ -173,7 +175,7 @@ def main():
 
     model = train(cfg, args.local_rank, args.distributed)
 
-    if not args.skip_test:
+    if args.test:
         test(cfg, model, args.distributed)
 
 

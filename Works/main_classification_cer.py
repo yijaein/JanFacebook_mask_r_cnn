@@ -21,10 +21,10 @@ from imgaug import augmenters as iaa
 
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('--data', default='/home/bong6/data/mrcnn_cer/classification_crop_hand_256', help='path to dataset')
+parser.add_argument('--data', default='/home/bong6/data/mrcnn_cer/machine_crop', help='path to dataset')
 parser.add_argument('--workers', default=8, type=int, help='number of data loading workers')
 parser.add_argument('--epochs', default=300, type=int, help='number of total epochs to run')
 parser.add_argument('--start_epoch', default=0, type=int, help='manual epoch number')
@@ -37,7 +37,7 @@ parser.add_argument('--pretrained', default=False, action='store_true', help='us
 parser.add_argument('--resume', default='', type=str, help='path to latest checkpoint')
 parser.add_argument('--evaluate', default=False, action='store_true', help='evaluate model on validation set')
 parser.add_argument('--seed', default=None, type=int, help='seed for initializingtraining')
-parser.add_argument('--result', default='/home/bong6/lib/robin_cer/results/crop_random_9', help='path to result')
+parser.add_argument('--result', default='/home/bong6/lib/robin_cer/results/machine_crop_3', help='path to result')
 parser.add_argument('--aspect_ratio', default=False, action='store_true', help='keep image aspect ratio')
 parser.add_argument('--resize_image_width', default=256, type=int, help='image width')
 parser.add_argument('--resize_image_height', default=256, type=int, help='image height')
@@ -48,7 +48,7 @@ parser.add_argument('--avg_pooling_height', default=7, type=int, help='average p
 parser.add_argument('--channels', default=3, type=int, help='select scale type rgb or gray')
 parser.add_argument('--num_classes', default=3, type=int, help='number of classes')
 parser.add_argument('--target_index', default=0, type=int, help='target index')
-parser.add_argument('--classification_result', default='/home/bong6/lib/robin_cer/results/classification_Type', help='path for segmentation result')
+parser.add_argument('--classification_result', default='/home/bong6/lib/robin_cer/results/machine_crop1', help='path for segmentation result')
 parser.add_argument('--randomcrop', default=True, help='randomcrop')
 parser.add_argument('--eval_result', default='/home/bong6/data/mrcnn_cer/classification_crop_hand_256/test', help='evaluate result folder path')
 parser.add_argument('--save_tensor_image', default=False, help='check augmentation')
@@ -86,12 +86,12 @@ def train_image_loader(path):
 
     out = pil_loader(path)
     out = np.array(out)
-    # out = random_rotate(out, 360) #check
-    # out = random_flip(out) #check
+    out = random_rotate(out, 360) #check
+    out = random_flip(out) #check
 
     #random Gausian_blur
     out = Random_Gausian_blur(out)
-
+    #
     out = Image.fromarray(np.uint8(out))
 
     return out
@@ -470,7 +470,7 @@ if __name__ == '__main__':
     if args.randomcrop:
 
         train_transforms = transforms.Compose([transforms.RandomCrop((args.image_height, args.image_width)),
-                                               transforms.RandomResizedCrop(args.image_height, scale=(0.8, 1.0), ratio=(0.75, 1.3)),
+                                               transforms.RandomResizedCrop(args.image_height, scale=(0.8, 1.3), ratio=(0.75, 1.6)),
                                                transforms.ToTensor(),
                                                 normalize,
                                                ])

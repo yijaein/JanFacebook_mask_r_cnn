@@ -45,19 +45,13 @@ def imshow(img):
 dir_path = "/home/bong6/data/mrcnn_cer/stage1_train1/images"
 anno_file = "/home/bong6/data/csv/output.csv"
 result_path = '/home/bong6/data/mrcnn_cer/result_rec'
-
+crop_dir = '/home/bong6/data/mrcnn_cer/crop_image'
 img_list = os.listdir(dir_path)
 
 anno_dict = dict()
 for filename in img_list:
     filename = os.path.splitext(filename)[0]
     anno_dict[filename] = list()
-
-# for dirName, subdirList, fileList in os.walk(dir_path):
-#     for filename in fileList:
-#         filename, ext = os.path.splitext(filename)
-#         if ext.lower() in [".png", ".jpg", ".jpeg"]:
-#
 
 with open(anno_file, 'r') as ann_f:
     ann_cvf = csv.reader(ann_f)
@@ -88,23 +82,43 @@ with open(anno_file, 'r') as ann_f:
 
 for dirName, subdirList, fileList in os.walk(dir_path):
      for filename in fileList:
-
+            crop_path = os.path.join(crop_dir,filename)
             file_path = os.path.join(dirName,filename)
 
             img = cv2.imread(file_path, cv2.IMREAD_COLOR)
 
-            predictions = coco_demo.run_on_opencv_image(img)
+            predictions, x = coco_demo.run_on_opencv_image(img)
 
             filename = os.path.splitext(filename)[0]
             #print('filename',filename)
-
-
             if not os.path.isdir(result_path):
                 os.makedirs(result_path)
+            top_prediction = x['top_pred']
+            # top bbox
+            xyxy = top_prediction.convert('xyxy').bbox
+            # extract top_prediction xyxy
+            asdfasd = xyxy.numpy()
+            xyxyresult = []
+            for item in asdfasd:
+                xyxyresult.extend(item)
+            # print('asfd', xyxyresult)
+
+            if len(xyxyresult) > 4:
+                xyxyresult = xyxyresult[:4]
+            elif len(xyxyresult) == 0:
+                continue
+
+                # print(xyxyresult)
+            print(xyxyresult)
 
             result_dir = os.path.join(result_path)
             print('processing -> this file', filename)
+            x, y, w, h = xyxyresult
+            result_image = img[int(y):int(y + h), int(x):int(x + w)]
+            print(crop_path)
+            print(result_image.shape)
 
+            cv2.imwrite(crop_path, result_image)
             if 'Type_1' in file_path:
 
                 result_1 = os.path.join(result_dir, "Type_1")
@@ -129,10 +143,3 @@ for dirName, subdirList, fileList in os.walk(dir_path):
                     os.makedirs(result_3)
                 result_3 = os.path.join(result_3, filename+'.png')
                 cv2.imwrite(result_3, predictions)
-
-
-
-            #cv2.imwrite(result_dir, predictions)
-            #imshow(predictions)
-
-
